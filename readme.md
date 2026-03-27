@@ -101,14 +101,15 @@ module "transfer_family" {
 
   access_grants = {
     alice_rw = {
-      grantee_type       = "DIRECTORY_USER"
-      grantee_identifier = "a1b2c3d4-5678-90ab-cdef-111111111111" // ID of the user from Identity Center
+      grantee_type       = "DIRECTORY_USER" // access for user
+      grantee_identifier = "a1b2c3d4-5678-90ab-cdef-111111111111" // ID of the user has to be taken from Identity Center
       permission         = "READWRITE"
       s3_prefix          = "alice/*"
     }
+
     analysts_ro = {
-      grantee_type       = "DIRECTORY_GROUP"
-      grantee_identifier = "a1b2c3d4-5678-90ab-cdef-222222222222" // ID of the user from Identity Center
+      grantee_type       = "DIRECTORY_GROUP" // access for group
+      grantee_identifier = "a1b2c3d4-5678-90ab-cdef-222222222222" // ID of the group has to be taken from Identity Center
       permission         = "READ"
       s3_prefix          = "reports/*"
     }
