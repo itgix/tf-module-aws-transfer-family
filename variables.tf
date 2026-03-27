@@ -23,15 +23,10 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "eip_allocation_ids" {
-  description = "Elastic IP allocation IDs for the SFTP server VPC endpoint"
-  type        = list(string)
-}
-
-variable "security_group_ids" {
-  description = "Security group IDs for the SFTP server VPC endpoint"
-  type        = list(string)
-  default     = []
+variable "allowed_ips" {
+  description = "Map of descriptive name to IP address allowed to connect on port 22 (e.g. {\"office\" = \"203.0.113.10\"})"
+  type        = map(string)
+  default     = {}
 }
 
 variable "sftp_security_policy" {

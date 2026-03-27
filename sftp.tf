@@ -1,4 +1,39 @@
 ###############################################################################
+# Elastic IPs (one per subnet)
+###############################################################################
+resource "aws_eip" "sftp" {
+  count  = length(var.subnet_ids)
+  domain = "vpc"
+  tags   = merge(var.tags, { Name = "${var.name_prefix}-sftp-${count.index}" })
+}
+
+###############################################################################
+# Security Group
+###############################################################################
+resource "aws_security_group" "sftp" {
+  name_prefix = "${var.name_prefix}-sftp-"
+  description = "SFTP server access on port 22"
+  vpc_id      = var.vpc_id
+  tags        = var.tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "sftp" {
+  for_each = var.allowed_ips
+
+  security_group_id = aws_security_group.sftp.id
+  description       = each.key
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "${each.value}/32"
+  tags              = var.tags
+}
+
+###############################################################################
 # SFTP Server
 ###############################################################################
 resource "aws_transfer_server" "sftp" {
@@ -20,8 +55,8 @@ resource "aws_transfer_server" "sftp" {
   endpoint_details {
     vpc_id                 = var.vpc_id
     subnet_ids             = var.subnet_ids
-    address_allocation_ids = var.eip_allocation_ids
-    security_group_ids     = var.security_group_ids
+    address_allocation_ids = aws_eip.sftp[*].allocation_id
+    security_group_ids     = [aws_security_group.sftp.id]
   }
 
   protocol_details {

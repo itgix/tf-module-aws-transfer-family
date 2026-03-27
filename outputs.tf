@@ -8,6 +8,16 @@ output "sftp_server_endpoint" {
   value       = aws_transfer_server.sftp.endpoint
 }
 
+output "sftp_eip_public_ips" {
+  description = "Public IP addresses allocated to the SFTP server"
+  value       = aws_eip.sftp[*].public_ip
+}
+
+output "sftp_security_group_id" {
+  description = "Security group ID attached to the SFTP server"
+  value       = aws_security_group.sftp.id
+}
+
 output "s3_bucket_name" {
   description = "S3 bucket name"
   value       = aws_s3_bucket.this.id

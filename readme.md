@@ -8,7 +8,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 
 ## Resources Created
 
-- AWS Transfer Family SFTP server (VPC endpoint with Elastic IPs)
+- AWS Transfer Family SFTP server (VPC endpoint with auto-allocated Elastic IPs)
+- Security group for SFTP access (port 22) with per-IP ingress rules
 - S3 bucket (versioned, encrypted, public access blocked)
 - SFTP users with SSH key authentication and scoped session policies
 - IAM roles and policies for SFTP and (optionally) the web app
@@ -32,9 +33,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `aws_region` | AWS region | `string` | — | yes |
 | `vpc_id` | VPC ID for the SFTP server endpoint | `string` | — | yes |
 | `subnet_ids` | Subnet IDs for the SFTP server VPC endpoint | `list(string)` | — | yes |
-| `eip_allocation_ids` | Elastic IP allocation IDs for the SFTP server VPC endpoint | `list(string)` | — | yes |
+| `allowed_ips` | Map of descriptive name to IP address allowed on port 22 | `map(string)` | `{}` | no |
 | `s3_bucket_name` | Name of the S3 bucket for SFTP storage | `string` | — | yes |
-| `security_group_ids` | Security group IDs for the SFTP server VPC endpoint | `list(string)` | `[]` | no |
 | `sftp_security_policy` | Security policy for the SFTP server | `string` | `"TransferSecurityPolicy-FIPS-2024-01"` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
@@ -51,6 +51,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 |------|-------------|
 | `sftp_server_id` | Transfer Family SFTP server ID |
 | `sftp_server_endpoint` | SFTP server endpoint |
+| `sftp_eip_public_ips` | Public IP addresses allocated to the SFTP server |
+| `sftp_security_group_id` | Security group ID attached to the SFTP server |
 | `s3_bucket_name` | S3 bucket name |
 | `s3_bucket_arn` | S3 bucket ARN |
 | `sftp_role_arn` | IAM role ARN used by the SFTP server |
@@ -61,6 +63,9 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 ## Usage Example
 
 ```hcl
+
+data "aws_ssoadmin_instances" "this" {} // used to dynamically fetch the identity center ARN for web app integration bellow
+
 module "transfer_family" {
   source = "path/to/tf-module-aws-transfer-family"
 
@@ -70,8 +75,11 @@ module "transfer_family" {
 
   vpc_id             = "vpc-0abc1234def567890"
   subnet_ids         = ["subnet-aaa111", "subnet-bbb222"]
-  eip_allocation_ids = ["eipalloc-aaa111", "eipalloc-bbb222"]
-  security_group_ids = ["sg-0abc1234"]
+
+  allowed_ips = {
+    "office"     = "203.0.113.10"
+    "vpn-egress" = "198.51.100.25"
+  }
 
   s3_bucket_name         = "myproject-sftp-storage"
   logging_retention_days = 90
@@ -88,7 +96,7 @@ module "transfer_family" {
 
   # Optional: enable web app (integrated with Identity Center)
   enable_web_app               = true
-  identity_center_instance_arn = "arn:aws:sso:::instance/ssoins-1234567890abcdef"
+  identity_center_instance_arn = tolist(data.aws_ssoadmin_instances.this.arns)[0] // example - "arn:aws:sso:::instance/ssoins-1234567890abcdef"
   web_app_units                = 2
 
   access_grants = {
