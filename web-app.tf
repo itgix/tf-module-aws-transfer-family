@@ -38,6 +38,14 @@ resource "aws_s3control_access_grants_location" "default" {
   tags           = var.tags
 }
 
+resource "aws_s3_object" "web_app_home_dirs" {
+  for_each = var.enable_web_app ? var.access_grants : {}
+
+  bucket  = aws_s3_bucket.this.id
+  key     = "${each.key}/"
+  content = ""
+}
+
 resource "aws_s3control_access_grant" "this" {
   for_each = var.enable_web_app ? var.access_grants : {}
 
@@ -45,7 +53,7 @@ resource "aws_s3control_access_grant" "this" {
   permission                = each.value.permission
 
   access_grants_location_configuration {
-    s3_sub_prefix = "${var.s3_bucket_name}/${each.value.s3_prefix}"
+    s3_sub_prefix = "${var.s3_bucket_name}/${coalesce(each.value.s3_prefix, "${each.key}/*")}"
   }
 
   grantee {

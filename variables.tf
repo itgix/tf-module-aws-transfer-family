@@ -80,12 +80,12 @@ variable "web_app_units" {
 }
 
 variable "access_grants" {
-  description = "Map of S3 Access Grants for Identity Center users/groups"
+  description = "Map of S3 Access Grants for Identity Center users/groups. The map key is used as the S3 home directory name."
   type = map(object({
     grantee_type       = string # DIRECTORY_USER or DIRECTORY_GROUP
     grantee_identifier = string # Identity Center user/group ID
     permission         = string # READ, WRITE, or READWRITE
-    s3_prefix          = string # e.g. "username/*"
+    s3_prefix          = optional(string) # Override auto-generated prefix (default: "<key>/*")
   }))
   default = {}
 }
