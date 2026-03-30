@@ -42,7 +42,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `enable_web_app` | Enable the Transfer Family Web App, S3 Access Grants, and associated IAM role | `bool` | `false` | no |
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
-| `access_grants` | Map of S3 Access Grants for Identity Center users/groups | `map(object({grantee_type=string, grantee_identifier=string, permission=string, s3_prefix=string}))` | `{}` | no |
+| `access_grants` | Map of S3 Access Grants for Identity Center users/groups | `map(object({grantee_type=string, grantee_identifier=string, permission=string, s3_prefix=optional(string)}))` | `{}` | no |
 | `tags` | Tags to apply to all resources | `map(string)` | `{}` | no |
 
 ## Outputs
@@ -104,14 +104,13 @@ module "transfer_family" {
       grantee_type       = "DIRECTORY_USER" // access for user
       grantee_identifier = "a1b2c3d4-5678-90ab-cdef-111111111111" // ID of the user has to be taken from Identity Center
       permission         = "READWRITE"
-      s3_prefix          = "alice/*"
     }
 
     analysts_ro = {
       grantee_type       = "DIRECTORY_GROUP" // access for group
       grantee_identifier = "a1b2c3d4-5678-90ab-cdef-222222222222" // ID of the group has to be taken from Identity Center
       permission         = "READ"
-      s3_prefix          = "reports/*"
+      # s3_prefix        = "custom/path/*"  // optional — overrides the default S3 prefix which is "<grant_key>/*"
     }
   }
 
