@@ -32,7 +32,7 @@ variable "allowed_ips" {
 variable "sftp_security_policy" {
   description = "Security policy for the SFTP server"
   type        = string
-  default     = "TransferSecurityPolicy-FIPS-2024-01"
+  default     = "TransferSecurityPolicy-2024-01"
 }
 
 variable "pre_authentication_login_banner" {
