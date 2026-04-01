@@ -16,6 +16,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 - CloudWatch log group with structured logging
 - *(Optional)* Transfer Family Web App with Identity Center integration
 - *(Optional)* S3 Access Grants instance and per-user/group grants
+- *(Optional)* Custom SFTP hostname via Transfer tag
+- *(Optional)* CloudFront distribution for custom web app domain
 
 ## Requirements
 
@@ -43,6 +45,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
 | `access_grants` | Map of S3 Access Grants for Identity Center users/groups | `map(object({grantee_type=string, grantee_identifier=string, permission=string, s3_prefix=optional(string)}))` | `{}` | no |
+| `custom_domain` | Custom domain settings for SFTP and/or web app. DNS records should be created separately. | `object({sftp_hostname=optional(string), web_app_hostname=optional(string), acm_certificate_arn=optional(string)})` | `null` | no |
 | `tags` | Tags to apply to all resources | `map(string)` | `{}` | no |
 
 ## Outputs
@@ -59,6 +62,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `web_app_id` | Transfer Family Web App ID (null if web app disabled) |
 | `web_app_endpoint` | Transfer Family Web App URL (null if web app disabled) |
 | `access_grants_instance_arn` | S3 Access Grants instance ARN (null if web app disabled) |
+| `sftp_custom_hostname_dns_target` | SFTP server endpoint to use as CNAME target for the custom SFTP hostname |
+| `web_app_cloudfront_domain` | CloudFront domain name to use as CNAME target for the custom web app hostname |
 
 ## Usage Example
 
@@ -113,6 +118,13 @@ module "transfer_family" {
       permission         = "READ"
       # s3_prefix        = "custom/path/*"  // optional — overrides the default S3 prefix which is "<grant_key>/*"
     }
+  }
+
+  # Optional: custom domains (DNS records should be created separately)
+  custom_domain = {
+    sftp_hostname       = "sftp.example.com"
+    web_app_hostname    = "files.example.com"                                    # requires acm_certificate_arn
+    acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abc-123" # must be in us-east-1 for CloudFront
   }
 
   tags = {

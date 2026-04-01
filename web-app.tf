@@ -4,6 +4,8 @@
 resource "aws_transfer_web_app" "this" {
   count = var.enable_web_app ? 1 : 0
 
+  access_endpoint = try(var.custom_domain.web_app_hostname, null) != null ? "https://${var.custom_domain.web_app_hostname}" : null
+
   identity_provider_details {
     identity_center_config {
       instance_arn = var.identity_center_instance_arn

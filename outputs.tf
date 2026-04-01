@@ -47,3 +47,13 @@ output "access_grants_instance_arn" {
   description = "S3 Access Grants instance ARN"
   value       = var.enable_web_app ? aws_s3control_access_grants_instance.this[0].access_grants_instance_arn : null
 }
+
+output "sftp_custom_hostname_dns_target" {
+  description = "SFTP server endpoint to use as CNAME target for the custom SFTP hostname"
+  value       = try(var.custom_domain.sftp_hostname, null) != null ? aws_transfer_server.sftp.endpoint : null
+}
+
+output "web_app_cloudfront_domain" {
+  description = "CloudFront domain name to use as alias/CNAME target for the custom web app hostname"
+  value       = var.enable_web_app && try(var.custom_domain.web_app_hostname, null) != null ? aws_cloudfront_distribution.web_app[0].domain_name : null
+}

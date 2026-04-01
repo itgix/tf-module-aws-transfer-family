@@ -90,6 +90,16 @@ variable "access_grants" {
   default = {}
 }
 
+variable "custom_domain" {
+  description = "Custom domain settings. DNS records should be created separately (e.g. CNAME to sftp_server_endpoint for SFTP, or alias to web_app_cloudfront_domain for the web app)."
+  type = object({
+    sftp_hostname       = optional(string) # e.g. "sftp.example.com"
+    web_app_hostname    = optional(string) # e.g. "files.example.com" (requires acm_certificate_arn)
+    acm_certificate_arn = optional(string) # ACM cert ARN in us-east-1 (required for web_app_hostname)
+  })
+  default = null
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
