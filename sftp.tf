@@ -118,7 +118,7 @@ resource "aws_transfer_user" "this" {
   server_id      = aws_transfer_server.sftp.id
   user_name      = each.key
   role           = aws_iam_role.sftp.arn
-  home_directory = each.value.home_directory != null ? each.value.home_directory : "/${var.s3_bucket_name}/${each.key}"
+  home_directory = each.value.home_directory != null ? "/${var.s3_bucket_name}${each.value.home_directory}" : "/${var.s3_bucket_name}/${each.key}"
   policy         = data.aws_iam_policy_document.sftp_user_session[each.key].json
   tags           = var.tags
 }
