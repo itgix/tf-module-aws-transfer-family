@@ -86,15 +86,17 @@ locals {
 }
 
 data "aws_iam_policy_document" "sftp_user_session" {
+  for_each = var.sftp_users
+
   statement {
     sid       = "AllowListingOfUserFolder"
     effect    = "Allow"
     actions   = ["s3:ListBucket"]
-    resources = ["arn:aws:s3:::$${transfer:HomeBucket}"]
+    resources = ["arn:aws:s3:::${var.s3_bucket_name}"]
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = ["$${transfer:HomeFolder}/*", "$${transfer:HomeFolder}"]
+      values   = ["${each.key}/*", "${each.key}"]
     }
   }
   statement {
@@ -106,7 +108,7 @@ data "aws_iam_policy_document" "sftp_user_session" {
       "s3:DeleteObject",
       "s3:GetObjectVersion",
     ]
-    resources = ["arn:aws:s3:::$${transfer:HomeDirectory}/*"]
+    resources = ["arn:aws:s3:::${var.s3_bucket_name}/${each.key}/*"]
   }
 }
 
@@ -117,7 +119,7 @@ resource "aws_transfer_user" "this" {
   user_name      = each.key
   role           = aws_iam_role.sftp.arn
   home_directory = each.value.home_directory != null ? each.value.home_directory : "/${var.s3_bucket_name}/${each.key}"
-  policy         = data.aws_iam_policy_document.sftp_user_session.json
+  policy         = data.aws_iam_policy_document.sftp_user_session[each.key].json
   tags           = var.tags
 }
 
