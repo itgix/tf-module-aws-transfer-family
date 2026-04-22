@@ -37,7 +37,8 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `subnet_ids` | Subnet IDs for the SFTP server VPC endpoint | `list(string)` | — | yes |
 | `allowed_ips` | Map of descriptive name to IP address allowed on port 22 | `map(string)` | `{}` | no |
 | `s3_bucket_name` | Name of the S3 bucket for SFTP storage | `string` | — | yes |
-| `sftp_security_policy` | Security policy for the SFTP server | `string` | `"TransferSecurityPolicy-FIPS-2024-01"` | no |
+| `sftp_security_policy` | Security policy for the SFTP server | `string` | `"TransferSecurityPolicy-2024-01"` | no |
+| `fips_enabled` | Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy | `bool` | `false` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
 | `sftp_users` | Map of SFTP users with SSH keys and optional home directory override | `map(object({ssh_public_keys=list(string), home_directory=optional(string)}))` | `{}` | no |
@@ -63,7 +64,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `web_app_endpoint` | Transfer Family Web App URL (null if web app disabled) |
 | `access_grants_instance_arn` | S3 Access Grants instance ARN (null if web app disabled) |
 | `sftp_custom_hostname_dns_target` | SFTP server endpoint to use as CNAME target for the custom SFTP hostname |
-| `web_app_cloudfront_domain` | CloudFront domain name to use as CNAME target for the custom web app hostname |
+| `web_app_cloudfront_domain` | CloudFront domain name to use as alias/CNAME target for the custom web app hostname |
 
 ## Usage Example
 
@@ -88,6 +89,7 @@ module "transfer_family" {
 
   s3_bucket_name         = "myproject-sftp-storage"
   logging_retention_days = 90
+  # fips_enabled         = true  # uncomment to switch to the FIPS security policy
 
   sftp_users = {
     alice = {
