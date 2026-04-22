@@ -100,6 +100,12 @@ variable "custom_domain" {
   default = null
 }
 
+variable "fips_enabled" {
+  description = "Whether the SFTP server endpoint should comply with Federal Information Processing Standards (FIPS)"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
