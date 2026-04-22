@@ -41,9 +41,8 @@ resource "aws_transfer_server" "sftp" {
   identity_provider_type = "SERVICE_MANAGED"
   domain                 = "S3"
   endpoint_type          = "VPC"
-  security_policy_name   = var.sftp_security_policy
+  security_policy_name   = var.fips_enabled ? "TransferSecurityPolicy-FIPS-2024-01" : var.sftp_security_policy
   logging_role           = aws_iam_role.sftp.arn
-  fips_enabled           = var.fips_enabled
 
   structured_log_destinations = [
     "${aws_cloudwatch_log_group.sftp.arn}:*"

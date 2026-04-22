@@ -35,6 +35,12 @@ variable "sftp_security_policy" {
   default     = "TransferSecurityPolicy-2024-01"
 }
 
+variable "fips_enabled" {
+  description = "Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy"
+  type        = bool
+  default     = false
+}
+
 variable "pre_authentication_login_banner" {
   description = "Login banner displayed before authentication"
   type        = string
@@ -98,12 +104,6 @@ variable "custom_domain" {
     acm_certificate_arn = optional(string) # ACM cert ARN in us-east-1 (required for web_app_hostname)
   })
   default = null
-}
-
-variable "fips_enabled" {
-  description = "Whether the SFTP server endpoint should comply with Federal Information Processing Standards (FIPS)"
-  type        = bool
-  default     = false
 }
 
 variable "tags" {
