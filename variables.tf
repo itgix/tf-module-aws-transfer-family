@@ -64,6 +64,7 @@ variable "sftp_users" {
     ssh_public_keys = list(string)
     home_directory  = optional(string)
     event_notification = optional(object({
+      id               = string
       destination_type = string
       destination_arn  = string
       events           = list(string)

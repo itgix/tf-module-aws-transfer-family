@@ -74,6 +74,7 @@ resource "aws_s3_bucket_notification" "this" {
   dynamic "lambda_function" {
     for_each = local.lambda_notifications
     content {
+      id                  = lambda_function.value.id
       lambda_function_arn = lambda_function.value.destination_arn
       events              = lambda_function.value.events
       filter_prefix       = lambda_function.value.filter_prefix
@@ -84,6 +85,7 @@ resource "aws_s3_bucket_notification" "this" {
   dynamic "queue" {
     for_each = local.sqs_notifications
     content {
+      id            = queue.value.id
       queue_arn     = queue.value.destination_arn
       events        = queue.value.events
       filter_prefix = queue.value.filter_prefix
@@ -94,6 +96,7 @@ resource "aws_s3_bucket_notification" "this" {
   dynamic "topic" {
     for_each = local.sns_notifications
     content {
+      id            = topic.value.id
       topic_arn     = topic.value.destination_arn
       events        = topic.value.events
       filter_prefix = topic.value.filter_prefix
