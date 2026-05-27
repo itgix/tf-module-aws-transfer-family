@@ -45,14 +45,34 @@ locals {
     user_key => user.event_notification
     if user.event_notification != null
   }
+
+  lambda_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "lambda"
+  }
+
+  sqs_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "sqs"
+  }
+
+  sns_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "sns"
+  }
+
+  has_any_notification = length(local.users_with_notifications) > 0
 }
 
 resource "aws_s3_bucket_notification" "this" {
-  for_each = local.users_with_notifications
-  bucket   = aws_s3_bucket.this.id
+  count  = local.has_any_notification ? 1 : 0
+  bucket = aws_s3_bucket.this.id
 
   dynamic "lambda_function" {
-    for_each = each.value.destination_type == "lambda" ? [each.value] : []
+    for_each = local.lambda_notifications
     content {
       lambda_function_arn = lambda_function.value.destination_arn
       events              = lambda_function.value.events
@@ -62,7 +82,7 @@ resource "aws_s3_bucket_notification" "this" {
   }
 
   dynamic "queue" {
-    for_each = each.value.destination_type == "sqs" ? [each.value] : []
+    for_each = local.sqs_notifications
     content {
       queue_arn     = queue.value.destination_arn
       events        = queue.value.events
@@ -72,7 +92,7 @@ resource "aws_s3_bucket_notification" "this" {
   }
 
   dynamic "topic" {
-    for_each = each.value.destination_type == "sns" ? [each.value] : []
+    for_each = local.sns_notifications
     content {
       topic_arn     = topic.value.destination_arn
       events        = topic.value.events
