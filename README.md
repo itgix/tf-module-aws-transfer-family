@@ -109,7 +109,7 @@ module "transfer_family" {
     alice = {
       ssh_public_keys = ["ssh-ed25519 AAAAC3Nza..."]
       event_notification = {
-        destination_type = "sqs"
+        destination_type = "sqs" # destination_type can be one of `lambda`, `sqs`, or `sns`
         destination_arn  = "arn:aws:sqs:eu-west-1:123456789012:alice-uploads"
         events           = ["s3:ObjectCreated:*"]
         filter_prefix    = "alice/"
@@ -120,7 +120,7 @@ module "transfer_family" {
       ssh_public_keys = ["ssh-rsa AAAAB3Nza..."]
       home_directory  = "/myproject-sftp-storage/shared/bob"
       event_notification = {
-        destination_type = "sns"
+        destination_type = "sns" # destination_type can be one of `lambda`, `sqs`, or `sns`
         destination_arn  = "arn:aws:sns:eu-west-1:123456789012:bob-notifications"
         events           = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
         filter_prefix    = "shared/bob/"
