@@ -42,7 +42,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `fips_enabled` | Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy | `bool` | `false` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
-| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, and optional S3 event notification | `map(object({ssh_public_keys=list(string), home_directory=optional(string), event_notification=optional(object({destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)}))}))` | `{}` | no |
+| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, and optional S3 event notification | `map(object({ssh_public_keys=list(string), home_directory=optional(string), event_notification=optional(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)}))}))` | `{}` | no |
 | `enable_web_app` | Enable the Transfer Family Web App, S3 Access Grants, and associated IAM role | `bool` | `false` | no |
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
@@ -56,6 +56,7 @@ Each SFTP user can optionally include an `event_notification` block to create an
 
 | Attribute | Description | Type | Required |
 |-----------|-------------|------|----------|
+| `id` | Unique identifier for this notification configuration. | `string` | yes |
 | `destination_type` | Target service type. Must be one of `lambda`, `sqs`, or `sns`. | `string` | yes |
 | `destination_arn` | ARN of the Lambda function, SQS queue, or SNS topic. | `string` | yes |
 | `events` | List of S3 event types to trigger on (e.g. `["s3:ObjectCreated:*"]`). | `list(string)` | yes |
@@ -112,6 +113,7 @@ module "transfer_family" {
         destination_arn  = "arn:aws:sqs:eu-west-1:123456789012:alice-uploads"
         events           = ["s3:ObjectCreated:*"]
         filter_prefix    = "alice/"
+        id               = "alice-sqs-notification"
       }
     }
     bob = {
@@ -123,6 +125,7 @@ module "transfer_family" {
         events           = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
         filter_prefix    = "shared/bob/"
         filter_suffix    = ".csv"
+        id               = "bob-sns-notification"
       }
     }
   }
