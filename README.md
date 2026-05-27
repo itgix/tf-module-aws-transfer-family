@@ -14,6 +14,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 - SFTP users with SSH key authentication and scoped session policies
 - IAM roles and policies for SFTP and (optionally) the web app
 - CloudWatch log group with structured logging
+- *(Optional)* S3 event notifications per user (Lambda, SQS, or SNS destinations)
 - *(Optional)* Transfer Family Web App with Identity Center integration
 - *(Optional)* S3 Access Grants instance and per-user/group grants
 - *(Optional)* Custom SFTP hostname via Transfer tag
@@ -41,13 +42,26 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `fips_enabled` | Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy | `bool` | `false` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
-| `sftp_users` | Map of SFTP users with SSH keys and optional home directory override | `map(object({ssh_public_keys=list(string), home_directory=optional(string)}))` | `{}` | no |
+| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, and optional S3 event notification | `map(object({ssh_public_keys=list(string), home_directory=optional(string), event_notification=optional(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)}))}))` | `{}` | no |
 | `enable_web_app` | Enable the Transfer Family Web App, S3 Access Grants, and associated IAM role | `bool` | `false` | no |
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
 | `access_grants` | Map of S3 Access Grants for Identity Center users/groups | `map(object({grantee_type=string, grantee_identifier=string, permission=string, s3_prefix=optional(string)}))` | `{}` | no |
 | `custom_domain` | Custom domain settings for SFTP and/or web app. DNS records should be created separately. | `object({sftp_hostname=optional(string), web_app_hostname=optional(string), acm_certificate_arn=optional(string)})` | `null` | no |
 | `tags` | Tags to apply to all resources | `map(string)` | `{}` | no |
+
+### `sftp_users` event_notification
+
+Each SFTP user can optionally include an `event_notification` block to create an S3 bucket notification for objects matching that user's prefix. All user notifications are merged into a single bucket notification configuration.
+
+| Attribute | Description | Type | Required |
+|-----------|-------------|------|----------|
+| `id` | Unique identifier for this notification configuration. | `string` | yes |
+| `destination_type` | Target service type. Must be one of `lambda`, `sqs`, or `sns`. | `string` | yes |
+| `destination_arn` | ARN of the Lambda function, SQS queue, or SNS topic. | `string` | yes |
+| `events` | List of S3 event types to trigger on (e.g. `["s3:ObjectCreated:*"]`). | `list(string)` | yes |
+| `filter_prefix` | Only match objects whose key starts with this prefix. | `string` | no |
+| `filter_suffix` | Only match objects whose key ends with this suffix. | `string` | no |
 
 ## Outputs
 
@@ -94,10 +108,25 @@ module "transfer_family" {
   sftp_users = {
     alice = {
       ssh_public_keys = ["ssh-ed25519 AAAAC3Nza..."]
+      event_notification = {
+        destination_type = "sqs" # destination_type can be one of `lambda`, `sqs`, or `sns`
+        destination_arn  = "arn:aws:sqs:eu-west-1:123456789012:alice-uploads"
+        events           = ["s3:ObjectCreated:*"]
+        filter_prefix    = "alice/"
+        id               = "alice-sqs-notification"
+      }
     }
     bob = {
       ssh_public_keys = ["ssh-rsa AAAAB3Nza..."]
       home_directory  = "/myproject-sftp-storage/shared/bob"
+      event_notification = {
+        destination_type = "sns" # destination_type can be one of `lambda`, `sqs`, or `sns`
+        destination_arn  = "arn:aws:sns:eu-west-1:123456789012:bob-notifications"
+        events           = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
+        filter_prefix    = "shared/bob/"
+        filter_suffix    = ".csv"
+        id               = "bob-sns-notification"
+      }
     }
   }
 

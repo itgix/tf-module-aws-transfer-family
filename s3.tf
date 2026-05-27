@@ -38,3 +38,69 @@ resource "aws_s3_object" "user_home_dirs" {
   key     = "${each.key}/"
   content = ""
 }
+
+locals {
+  users_with_notifications = {
+    for user_key, user in var.sftp_users :
+    user_key => user.event_notification
+    if user.event_notification != null
+  }
+
+  lambda_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "lambda"
+  }
+
+  sqs_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "sqs"
+  }
+
+  sns_notifications = {
+    for user_key, notif in local.users_with_notifications :
+    user_key => notif
+    if notif.destination_type == "sns"
+  }
+
+  has_any_notification = length(local.users_with_notifications) > 0
+}
+
+resource "aws_s3_bucket_notification" "this" {
+  count  = local.has_any_notification ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+
+  dynamic "lambda_function" {
+    for_each = local.lambda_notifications
+    content {
+      id                  = lambda_function.value.id
+      lambda_function_arn = lambda_function.value.destination_arn
+      events              = lambda_function.value.events
+      filter_prefix       = lambda_function.value.filter_prefix
+      filter_suffix       = lambda_function.value.filter_suffix
+    }
+  }
+
+  dynamic "queue" {
+    for_each = local.sqs_notifications
+    content {
+      id            = queue.value.id
+      queue_arn     = queue.value.destination_arn
+      events        = queue.value.events
+      filter_prefix = queue.value.filter_prefix
+      filter_suffix = queue.value.filter_suffix
+    }
+  }
+
+  dynamic "topic" {
+    for_each = local.sns_notifications
+    content {
+      id            = topic.value.id
+      topic_arn     = topic.value.destination_arn
+      events        = topic.value.events
+      filter_prefix = topic.value.filter_prefix
+      filter_suffix = topic.value.filter_suffix
+    }
+  }
+}
