@@ -63,8 +63,23 @@ variable "sftp_users" {
   type = map(object({
     ssh_public_keys = list(string)
     home_directory  = optional(string)
+    event_notification = optional(object({
+      destination_type = string
+      destination_arn  = string
+      events           = list(string)
+      filter_prefix    = optional(string, null)
+      filter_suffix    = optional(string, null)
+    }))
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for user_key, user in var.sftp_users :
+      user.event_notification == null || contains(["lambda", "sqs", "sns"], user.event_notification.destination_type)
+    ])
+    error_message = "event_notification.destination_type must be one of: lambda, sqs, sns."
+  }
 }
 
 variable "enable_web_app" {
@@ -88,9 +103,9 @@ variable "web_app_units" {
 variable "access_grants" {
   description = "Map of S3 Access Grants for Identity Center users/groups. The map key is used as the S3 home directory name."
   type = map(object({
-    grantee_type       = string # DIRECTORY_USER or DIRECTORY_GROUP
-    grantee_identifier = string # Identity Center user/group ID
-    permission         = string # READ, WRITE, or READWRITE
+    grantee_type       = string           # DIRECTORY_USER or DIRECTORY_GROUP
+    grantee_identifier = string           # Identity Center user/group ID
+    permission         = string           # READ, WRITE, or READWRITE
     s3_prefix          = optional(string) # Override auto-generated prefix (default: "<key>/*")
   }))
   default = {}

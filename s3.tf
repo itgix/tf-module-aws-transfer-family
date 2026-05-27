@@ -38,3 +38,46 @@ resource "aws_s3_object" "user_home_dirs" {
   key     = "${each.key}/"
   content = ""
 }
+
+locals {
+  users_with_notifications = {
+    for user_key, user in var.sftp_users :
+    user_key => user.event_notification
+    if user.event_notification != null
+  }
+}
+
+resource "aws_s3_bucket_notification" "this" {
+  for_each = local.users_with_notifications
+  bucket   = aws_s3_bucket.this.id
+
+  dynamic "lambda_function" {
+    for_each = each.value.destination_type == "lambda" ? [each.value] : []
+    content {
+      lambda_function_arn = lambda_function.value.destination_arn
+      events              = lambda_function.value.events
+      filter_prefix       = lambda_function.value.filter_prefix
+      filter_suffix       = lambda_function.value.filter_suffix
+    }
+  }
+
+  dynamic "queue" {
+    for_each = each.value.destination_type == "sqs" ? [each.value] : []
+    content {
+      queue_arn     = queue.value.destination_arn
+      events        = queue.value.events
+      filter_prefix = queue.value.filter_prefix
+      filter_suffix = queue.value.filter_suffix
+    }
+  }
+
+  dynamic "topic" {
+    for_each = each.value.destination_type == "sns" ? [each.value] : []
+    content {
+      topic_arn     = topic.value.destination_arn
+      events        = topic.value.events
+      filter_prefix = topic.value.filter_prefix
+      filter_suffix = topic.value.filter_suffix
+    }
+  }
+}
