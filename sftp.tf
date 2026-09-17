@@ -102,12 +102,14 @@ data "aws_iam_policy_document" "sftp_user_session" {
   statement {
     sid    = "HomeDirObjectAccess"
     effect = "Allow"
-    actions = [
-      "s3:PutObject",
-      "s3:GetObject",
-      "s3:DeleteObject",
-      "s3:GetObjectVersion",
-    ]
+    actions = concat(
+      [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+      ],
+      each.value.allow_delete ? ["s3:DeleteObject"] : [],
+    )
     resources = ["arn:aws:s3:::${var.s3_bucket_name}/${each.key}/*"]
   }
 }

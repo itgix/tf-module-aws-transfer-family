@@ -63,6 +63,7 @@ variable "sftp_users" {
   type = map(object({
     ssh_public_keys = list(string)
     home_directory  = optional(string)
+    allow_delete    = optional(bool, true)
     event_notification = optional(object({
       id               = string
       destination_type = string

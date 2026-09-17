@@ -42,13 +42,23 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `fips_enabled` | Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy | `bool` | `false` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
-| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, and optional S3 event notification | `map(object({ssh_public_keys=list(string), home_directory=optional(string), event_notification=optional(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)}))}))` | `{}` | no |
+| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, optional per-user delete control, and optional S3 event notification | `map(object({ssh_public_keys=list(string), home_directory=optional(string), allow_delete=optional(bool, true), event_notification=optional(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)}))}))` | `{}` | no |
 | `enable_web_app` | Enable the Transfer Family Web App, S3 Access Grants, and associated IAM role | `bool` | `false` | no |
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
 | `access_grants` | Map of S3 Access Grants for Identity Center users/groups | `map(object({grantee_type=string, grantee_identifier=string, permission=string, s3_prefix=optional(string)}))` | `{}` | no |
 | `custom_domain` | Custom domain settings for SFTP and/or web app. DNS records should be created separately. | `object({sftp_hostname=optional(string), web_app_hostname=optional(string), acm_certificate_arn=optional(string)})` | `null` | no |
 | `tags` | Tags to apply to all resources | `map(string)` | `{}` | no |
+
+### `sftp_users` allow_delete
+
+Each SFTP user can optionally set `allow_delete` to control whether that user may delete objects in their home directory. It defaults to `true`. When set to `false`, `s3:DeleteObject` is omitted from that user's session (scope-down) policy, so the user can upload and read files but cannot delete them, while other users are unaffected.
+
+Because Transfer Family evaluates the effective permission as the intersection of the shared IAM role and the per-user session policy, dropping `s3:DeleteObject` from a single user's session policy denies delete for that user only, even though the shared role still permits it.
+
+| Attribute | Description | Type | Required | Default |
+|-----------|-------------|------|----------|---------|
+| `allow_delete` | Whether the user may delete objects in their home directory. | `bool` | no | `true` |
 
 ### `sftp_users` event_notification
 
