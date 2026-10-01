@@ -64,23 +64,38 @@ variable "sftp_users" {
     ssh_public_keys = list(string)
     home_directory  = optional(string)
     allow_delete    = optional(bool, true)
-    event_notification = optional(object({
+    event_notifications = optional(list(object({
       id               = string
       destination_type = string
       destination_arn  = string
       events           = list(string)
       filter_prefix    = optional(string, null)
       filter_suffix    = optional(string, null)
-    }))
+    })), [])
   }))
   default = {}
 
   validation {
-    condition = alltrue([
-      for user_key, user in var.sftp_users :
-      user.event_notification == null || contains(["lambda", "sqs", "sns"], user.event_notification.destination_type)
-    ])
-    error_message = "event_notification.destination_type must be one of: lambda, sqs, sns."
+    condition = alltrue(flatten([
+      for user_key, user in var.sftp_users : [
+        for notif in coalesce(user.event_notifications, []) :
+        contains(["lambda", "sqs", "sns"], notif.destination_type)
+      ]
+    ]))
+    error_message = "event_notifications[*].destination_type must be one of: lambda, sqs, sns."
+  }
+
+  validation {
+    condition = length(flatten([
+      for user_key, user in var.sftp_users : [
+        for notif in coalesce(user.event_notifications, []) : notif.id
+      ]
+      ])) == length(distinct(flatten([
+        for user_key, user in var.sftp_users : [
+          for notif in coalesce(user.event_notifications, []) : notif.id
+        ]
+    ])))
+    error_message = "event_notifications[*].id must be unique across all users (used as the S3 bucket notification configuration id)."
   }
 }
 

@@ -40,31 +40,37 @@ resource "aws_s3_object" "user_home_dirs" {
 }
 
 locals {
-  users_with_notifications = {
-    for user_key, user in var.sftp_users :
-    user_key => user.event_notification
-    if user.event_notification != null
-  }
+  # Flatten every user's event_notifications into a single flat list.
+  # A user may now declare multiple notifications (e.g. one Lambda and one SQS).
+  all_notifications = flatten([
+    for user_key, user in var.sftp_users : [
+      for notif in coalesce(user.event_notifications, []) : merge(notif, {
+        user_key = user_key
+      })
+    ]
+  ])
 
+  # Group notifications by destination type, keyed by the notification id
+  # (validated unique in variables.tf) so for_each has stable keys.
   lambda_notifications = {
-    for user_key, notif in local.users_with_notifications :
-    user_key => notif
+    for notif in local.all_notifications :
+    notif.id => notif
     if notif.destination_type == "lambda"
   }
 
   sqs_notifications = {
-    for user_key, notif in local.users_with_notifications :
-    user_key => notif
+    for notif in local.all_notifications :
+    notif.id => notif
     if notif.destination_type == "sqs"
   }
 
   sns_notifications = {
-    for user_key, notif in local.users_with_notifications :
-    user_key => notif
+    for notif in local.all_notifications :
+    notif.id => notif
     if notif.destination_type == "sns"
   }
 
-  has_any_notification = length(local.users_with_notifications) > 0
+  has_any_notification = length(local.all_notifications) > 0
 }
 
 resource "aws_s3_bucket_notification" "this" {
