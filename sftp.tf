@@ -89,9 +89,13 @@ data "aws_iam_policy_document" "sftp_user_session" {
   for_each = var.sftp_users
 
   statement {
-    sid       = "AllowListingOfUserFolder"
-    effect    = "Allow"
-    actions   = ["s3:ListBucket"]
+    sid    = "AllowListingOfUserFolder"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:ListBucketVersions",
+      "s3:ListBucketMultipartUploads",
+    ]
     resources = ["arn:aws:s3:::${var.s3_bucket_name}"]
     condition {
       test     = "StringLike"
@@ -107,8 +111,13 @@ data "aws_iam_policy_document" "sftp_user_session" {
         "s3:PutObject",
         "s3:GetObject",
         "s3:GetObjectVersion",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts",
       ],
-      each.value.allow_delete ? ["s3:DeleteObject"] : [],
+      each.value.allow_delete ? [
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+      ] : [],
     )
     resources = ["arn:aws:s3:::${var.s3_bucket_name}/${each.key}/*"]
   }
