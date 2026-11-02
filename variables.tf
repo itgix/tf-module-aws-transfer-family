@@ -63,10 +63,7 @@ variable "sftp_users" {
   type = map(object({
     ssh_public_keys = list(string)
     home_directory  = optional(string)
-    # PATH    - user sees the real S3 path (/<bucket>/<home>), current behaviour.
-    # LOGICAL - user is chrooted: their home directory is presented as "/".
-    home_directory_type = optional(string, "PATH")
-    allow_delete        = optional(bool, true)
+    allow_delete    = optional(bool, true)
     event_notifications = optional(list(object({
       id               = string
       destination_type = string
@@ -86,13 +83,6 @@ variable "sftp_users" {
       ]
     ]))
     error_message = "event_notifications[*].destination_type must be one of: lambda, sqs, sns."
-  }
-
-  validation {
-    condition = alltrue([
-      for user_key, user in var.sftp_users : contains(["PATH", "LOGICAL"], user.home_directory_type)
-    ])
-    error_message = "sftp_users[*].home_directory_type must be one of: PATH, LOGICAL."
   }
 
   validation {

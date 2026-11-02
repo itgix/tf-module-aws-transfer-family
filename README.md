@@ -42,7 +42,7 @@ Part of the [ITGix AWS Landing Zone](https://itgix.com/itgix-landing-zone/).
 | `fips_enabled` | Enable FIPS-compliant endpoint by switching to the corresponding FIPS security policy | `bool` | `false` | no |
 | `pre_authentication_login_banner` | Login banner displayed before authentication | `string` | `""` | no |
 | `logging_retention_days` | CloudWatch log group retention in days | `number` | `365` | no |
-| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, optional home directory type (`PATH`/`LOGICAL`), optional per-user delete control, and an optional list of S3 event notifications | `map(object({ssh_public_keys=list(string), home_directory=optional(string), home_directory_type=optional(string, "PATH"), allow_delete=optional(bool, true), event_notifications=optional(list(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)})), [])}))` | `{}` | no |
+| `sftp_users` | Map of SFTP users with SSH keys, optional home directory, optional per-user delete control, and an optional list of S3 event notifications | `map(object({ssh_public_keys=list(string), home_directory=optional(string), allow_delete=optional(bool, true), event_notifications=optional(list(object({id=string, destination_type=string, destination_arn=string, events=list(string), filter_prefix=optional(string), filter_suffix=optional(string)})), [])}))` | `{}` | no |
 | `enable_web_app` | Enable the Transfer Family Web App, S3 Access Grants, and associated IAM role | `bool` | `false` | no |
 | `identity_center_instance_arn` | ARN of the IAM Identity Center instance (required when `enable_web_app = true`) | `string` | `""` | no |
 | `web_app_units` | Number of provisioned web app units (concurrent connections) | `number` | `1` | no |
@@ -60,20 +60,13 @@ Because Transfer Family evaluates the effective permission as the intersection o
 |-----------|-------------|------|----------|---------|
 | `allow_delete` | Whether the user may delete objects in their home directory. | `bool` | no | `true` |
 
-### `sftp_users` home_directory_type
+### SFTP home directories (chroot)
 
-Controls how the user's home directory is presented over SFTP. Defaults to `PATH`.
+Every SFTP user is chrooted using a `LOGICAL` home directory: the user's home directory (`/<bucket>/<home_directory>`, or `/<bucket>/<user>` if `home_directory` is not set) is mapped to `/`, and nothing outside it, including the bucket name, is visible. The actual S3 permissions are still enforced by the per-user session policy.
 
-- `PATH` — the user lands in the real S3 path, e.g. `/myproject-sftp-storage/alice`, so the bucket name is visible. Navigating outside the home directory returns "permission denied" (blocked by the session policy).
-- `LOGICAL` — the user is chrooted: the home directory is mapped to `/` via a home directory mapping, and nothing outside it (including the bucket name) is visible. Recommended for external vendors.
+Clients should use relative paths (`x.csv`) or chrooted absolute paths (`/x.csv`). Real-path absolute paths such as `/myproject-sftp-storage/alice/x.csv` do not resolve.
 
-In both modes the actual S3 permissions are enforced by the same per-user session policy; `LOGICAL` changes only what the user sees.
-
-Switching an existing user from `PATH` to `LOGICAL` is an in-place update, but clients or scripts that use absolute paths (e.g. `/myproject-sftp-storage/alice/file.csv`) must be changed to use `/file.csv` or relative paths.
-
-| Attribute | Description | Type | Required | Default |
-|-----------|-------------|------|----------|---------|
-| `home_directory_type` | `PATH` or `LOGICAL` (chroot). | `string` | no | `"PATH"` |
+Upgrading from a version where users had `PATH` home directories is an in-place update of each `aws_transfer_user` (no data moves, SSH keys and S3 keys are unchanged), but any client that uses real-path absolute paths must switch to relative or chrooted paths.
 
 ### `sftp_users` event_notifications
 
@@ -134,8 +127,7 @@ module "transfer_family" {
 
   sftp_users = {
     alice = {
-      ssh_public_keys     = ["ssh-ed25519 AAAAC3Nza..."]
-      home_directory_type = "LOGICAL" # chroot: alice sees her home directory as "/"
+      ssh_public_keys = ["ssh-ed25519 AAAAC3Nza..."]
       # A single user can have multiple notifications with different destinations.
       event_notifications = [
         {
