@@ -123,15 +123,41 @@ data "aws_iam_policy_document" "sftp_user_session" {
   }
 }
 
+locals {
+  # Real S3 location of each user's home directory ("/<bucket>/<prefix>").
+  user_home_paths = {
+    for user, config in var.sftp_users : user => (
+      config.home_directory != null
+      ? "/${var.s3_bucket_name}${config.home_directory}"
+      : "/${var.s3_bucket_name}/${user}"
+    )
+  }
+}
+
 resource "aws_transfer_user" "this" {
   for_each = var.sftp_users
 
-  server_id      = aws_transfer_server.sftp.id
-  user_name      = each.key
-  role           = aws_iam_role.sftp.arn
-  home_directory = each.value.home_directory != null ? "/${var.s3_bucket_name}${each.value.home_directory}" : "/${var.s3_bucket_name}/${each.key}"
-  policy         = data.aws_iam_policy_document.sftp_user_session[each.key].json
-  tags           = var.tags
+  server_id           = aws_transfer_server.sftp.id
+  user_name           = each.key
+  role                = aws_iam_role.sftp.arn
+  home_directory_type = each.value.home_directory_type
+
+  # PATH: the user lands in, and sees, the real S3 path.
+  home_directory = each.value.home_directory_type == "PATH" ? local.user_home_paths[each.key] : null
+
+  # LOGICAL: chroot - the user's home directory is mapped to "/" and nothing
+  # outside it (including the bucket name) is visible. The session policy
+  # below still scopes the actual S3 permissions.
+  dynamic "home_directory_mappings" {
+    for_each = each.value.home_directory_type == "LOGICAL" ? [1] : []
+    content {
+      entry  = "/"
+      target = local.user_home_paths[each.key]
+    }
+  }
+
+  policy = data.aws_iam_policy_document.sftp_user_session[each.key].json
+  tags   = var.tags
 }
 
 resource "aws_transfer_ssh_key" "this" {
